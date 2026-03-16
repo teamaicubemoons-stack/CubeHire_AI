@@ -325,7 +325,7 @@ async def send_rejection(request: RejectionRequest):
                         <p>We will keep your resume in our database and may contact you if a suitable opening arises in the future.</p>
                         <p>We wish you the best in your job search.</p>
                         <br>
-                        <p>Best Regards,<br><strong>{request.company_name}</strong><br>RecruitAI</p>
+                        <p>Best Regards,<br><strong>{request.company_name}</strong><br>Powered by RecruitAI</p>
                         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
                         <p style="font-size: 0.8rem; color: #94a3b8; text-align: center;">This is an automated message. Please <strong>do not reply</strong> to this email.</p>
                     </body>
@@ -360,7 +360,7 @@ async def send_rejection(request: RejectionRequest):
                 msg['From'] = str(smtp_user or "")
                 msg['To'] = str(email or "")
                 msg['Subject'] = str(f"Update on your application for {clean_title}")
-                body_text = f"Dear Candidate,\n\nThank you for applying for the {clean_title} position. After reviewing your profile, we have decided to proceed with other candidates.\n\nBest Regards,\nRecruitAI Team"
+                body_text = f"Dear Candidate,\n\nThank you for applying for the {clean_title} position. After reviewing your profile, we have decided to proceed with other candidates.\n\nBest Regards,\n{request.company_name}\nPowered by RecruitAI"
                 msg.attach(MIMEText(body_text, 'plain'))
                 server.send_message(msg)
                 # Delay between emails to avoid rate limiting

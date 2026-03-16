@@ -848,7 +848,19 @@ if (rejectProceedBtn) {
                 const sendResp = await fetch(`${window.location.origin}/aptitude-api/send-rejection`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ emails: emails, job_title: actualJobTitle })
+                    body: JSON.stringify({ 
+                        emails: emails, 
+                        job_title: actualJobTitle,
+                        company_name: (() => {
+                            const companyDataStr = localStorage.getItem('recruitAI_companyData');
+                            if (companyDataStr) {
+                                try {
+                                    return JSON.parse(companyDataStr)['company-name'] || "RecruitAI";
+                                } catch(e) { return "RecruitAI"; }
+                            }
+                            return "RecruitAI";
+                        })()
+                    })
                 });
                 
                 if (!sendResp.ok) {
