@@ -49,16 +49,6 @@ class GmailOAuthService:
         self.token_dir = self.backend_dir / self.TOKEN_DIR
         self.token_dir.mkdir(exist_ok=True)
         
-        # --- Clear Tokens on Restart (User Request) ---
-        try:
-            import shutil
-            for item in self.token_dir.iterdir():
-                if item.is_file():
-                    item.unlink()
-            print("🧹 Gmail OAuth tokens cleared for fresh start.")
-        except Exception as e:
-            print(f"⚠️ Failed to clear tokens: {e}")
-        
         if not self.client_secret_path.exists():
             print(f"⚠️  WARNING: client_secret.json not found in any standard locations.")
     

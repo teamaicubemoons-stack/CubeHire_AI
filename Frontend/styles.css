@@ -39,55 +39,49 @@ body {
   min-height: 100vh;
 }
 
-/* --- Decorative Background --- */
+/* --- LIVE MESH BACKGROUND --- */
 .bg-blur {
   position: fixed;
-  width: 600px;
-  height: 600px;
+  width: 70vw;
+  height: 70vh;
   border-radius: 50%;
+  filter: blur(120px);
   z-index: -1;
-  filter: blur(100px);
-  opacity: 0.15;
+  opacity: 0.18;
   pointer-events: none;
-  animation: floating 20s infinite ease-in-out;
+  animation: floatBackground 25s infinite alternate ease-in-out;
 }
 
 .blur-1 {
-  top: -15%;
-  left: -15%;
   background: var(--primary);
-  opacity: 0.2;
+  top: -20%;
+  left: -10%;
+  animation-duration: 30s;
 }
 
 .blur-2 {
-  bottom: -10%;
-  right: -10%;
   background: var(--secondary);
-  opacity: 0.2;
-  animation-delay: -5s;
+  bottom: -15%;
+  right: -5%;
+  animation-duration: 35s;
+  animation-delay: -7s;
 }
 
 .blur-3 {
-  top: 40%;
-  left: 40%;
   background: var(--accent);
-  opacity: 0.15;
-  animation-delay: -10s;
+  top: 35%;
+  left: 25%;
+  width: 50vw;
+  height: 50vh;
+  animation-duration: 28s;
+  animation-delay: -3s;
 }
 
-@keyframes floating {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-
-  33% {
-    transform: translate(50px, 100px) scale(1.1);
-  }
-
-  66% {
-    transform: translate(-50px, 50px) scale(0.9);
-  }
+@keyframes floatBackground {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  33% { transform: translate(10%, 15%) scale(1.1) rotate(5deg); }
+  66% { transform: translate(-5%, 10%) scale(0.9) rotate(-5deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
 }
 
 /* --- Navigation --- */
