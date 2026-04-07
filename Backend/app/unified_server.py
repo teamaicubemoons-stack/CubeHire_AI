@@ -137,7 +137,7 @@ async def start_gmail_oauth(request: Request, company_id: str = Query(default="d
         space_id = os.getenv("SPACE_ID")
         
         if base_url_env:
-            base_url = base_url_env.replace("http://", "https://").rstrip('/')
+            base_url = base_url_env.rstrip('/')
         elif space_id:
             # Automatic HF Space URL
             base_url = f"https://{space_id.replace('/', '-')}.hf.space"
