@@ -21,8 +21,14 @@ COPY requirements.txt .
 # We use --no-cache-dir to keep the image size small
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download the spaCy model required for parsing
+RUN python -m spacy download en_core_web_sm
+
 # Copy the rest of the application code
 COPY . .
+
+# Ensure tokens directory exists for Gmail OAuth
+RUN mkdir -p /app/Backend/tokens
 
 # Expose the port the app runs on
 # 7860 is the default port for Hugging Face Spaces

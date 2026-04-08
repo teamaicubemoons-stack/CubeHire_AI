@@ -1,0 +1,17 @@
+.venv
+.git
+.env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+chroma_db/
+Reports/
+data/resumes/
+.pytest_cache/
+assessments_db.json
+client_secret.json
+Backend/tokens/
