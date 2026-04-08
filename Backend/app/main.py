@@ -7,11 +7,14 @@ import os
 import uuid
 import json
 import logging
-import asyncio
+import threading
+import requests
 import warnings
-import re
 from datetime import datetime
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# Google Sheets Configuration (Fetched from .env)
+GOOGLE_SHEETS_URL = os.getenv("GOOGLE_SHEETS_URL")
 
 from .core.config import get_settings
 from .services import pdf_service, vector_service, ai_service, utils
@@ -816,6 +819,27 @@ async def _run_async_analysis(job_id: str, jd_text: str, source_dir: str, top_n:
             json.dump(rejected_export, f, indent=4)
             
         logger.info(f"✅ Generated Handoff Files: selected_candidates.json ({len(selected_export)}) & not_selected_candidates.json ({len(rejected_export)})")
+        
+        # --- Google Sheets Export (Shortlisted Only) ---
+        try:
+            for candidate in selected_export:
+                sheet_payload = {
+                    "type": "screening",
+                    "name": candidate["name"],
+                    "email": candidate["email"],
+                    "role": candidate["role"],
+                    "score": candidate["ai_analysis"]["score"],
+                    "summary": candidate["ai_analysis"]["reasoning"],
+                    "experience": candidate["ai_analysis"].get("years_of_experience", "N/A"),
+                    "skills": ", ".join(candidate["ai_analysis"]["matched_skills"]),
+                    "status": candidate["ai_analysis"]["status"],
+                    "resume_link": candidate["resume_path"]
+                }
+                # Send in background
+                threading.Thread(target=lambda: requests.post(GOOGLE_SHEETS_URL, json=sheet_payload), daemon=True).start()
+            logger.info(f"📊 Syncing {len(selected_export)} candidates to Google Sheets...")
+        except Exception as sheet_e:
+            logger.error(f"⚠️ Google Sheets Sync Failed (Screening): {sheet_e}")
         
         # Rejections
         final_rejected = []

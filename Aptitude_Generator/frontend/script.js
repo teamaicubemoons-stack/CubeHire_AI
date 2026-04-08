@@ -235,7 +235,7 @@ function setupEventListeners() {
 
     // Final: Actions
     copyBtn.addEventListener('click', copyToClipboard);
-    downloadPdfBtn.addEventListener('click', simulatePdfDownload);
+    downloadPdfBtn.addEventListener('click', downloadAssessmentPDF);
 
     // Modal Events
     emailBtn.addEventListener('click', async () => {
@@ -690,8 +690,157 @@ function copyToClipboard() {
     });
 }
 
-function simulatePdfDownload() {
-    alert("In the full implementation, this will generate a formatted PDF of your selected questions.");
+function downloadAssessmentPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Attempt to get Job Title
+    const jdValue = jdInput.value;
+    const jobTitleMatch = jdValue.match(/JOB TITLE:\s*(.*)/i);
+    let jobTitle = "Technical Assessment";
+    if (jobTitleMatch && jobTitleMatch[1]) {
+        jobTitle = jobTitleMatch[1].trim();
+    }
+
+    // --- Styling Constants ---
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 25;
+
+    // --- Header Branding ---
+    doc.setFillColor(30, 58, 138); // Deep Navy
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("CubeHire AI", margin, 20);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Professional Recruitment Evaluation System", margin, 28);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    const dateStr = new Date().toLocaleDateString();
+    doc.text(dateStr, pageWidth - margin - 25, 20);
+
+    yPos = 55;
+    
+    // --- Assessment Title ---
+    doc.setTextColor(15, 23, 42); // Text Main
+    doc.setFontSize(18);
+    doc.text("Assessment Paper", margin, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(14);
+    doc.setTextColor(37, 99, 235); // Accent Blue
+    doc.text(`Role: ${jobTitle}`, margin, yPos);
+    yPos += 15;
+
+    // --- Candidate info section ---
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+    
+    doc.setTextColor(71, 85, 105);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("CANDIDATE NAME: _________________________________", margin, yPos);
+    yPos += 8;
+    doc.text("DATE: __________________", margin, yPos);
+    doc.text("SCORE: ________ / ________", pageWidth / 2 + 10, yPos);
+    
+    yPos += 15;
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 15;
+
+    // --- MCQs Section ---
+    if (selectedMcqs.size > 0) {
+        doc.setTextColor(30, 58, 138);
+        doc.setFontSize(14);
+        doc.text("SECTION A: MULTIPLE CHOICE QUESTIONS", margin, yPos);
+        yPos += 10;
+        
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        
+        const mcqs = Array.from(selectedMcqs);
+        mcqs.forEach((q, idx) => {
+            // Check for page overflow
+            if (yPos > 260) {
+                doc.addPage();
+                yPos = 25;
+            }
+            
+            doc.setFont("helvetica", "bold");
+            const qLine = `Q${idx + 1}: ${q.question}`;
+            const splitQ = doc.splitTextToSize(qLine, pageWidth - 2 * margin);
+            doc.text(splitQ, margin, yPos);
+            yPos += (splitQ.length * 5);
+            
+            doc.setFont("helvetica", "normal");
+            const options = q.options || [];
+            options.forEach((opt, i) => {
+                const optChar = String.fromCharCode(65 + i);
+                doc.text(`${optChar}) ${opt}`, margin + 5 + (i % 2 === 1 ? (pageWidth-2*margin)/2 : 0), yPos);
+                if (i % 2 === 1 || i === options.length - 1) yPos += 6;
+            });
+            yPos += 4;
+        });
+    }
+
+    // --- Coding Section ---
+    if (selectedCoding.size > 0) {
+        if (yPos > 240) { doc.addPage(); yPos = 25; }
+        else yPos += 10;
+
+        doc.setTextColor(30, 58, 138);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("SECTION B: CODING & ALGORITHMS", margin, yPos);
+        yPos += 10;
+        
+        const coding = Array.from(selectedCoding);
+        coding.forEach((c, idx) => {
+            if (yPos > 250) { doc.addPage(); yPos = 25; }
+            
+            doc.setFontSize(11);
+            doc.setTextColor(15, 23, 42);
+            doc.setFont("helvetica", "bold");
+            doc.text(`C${idx + 1}: ${c.title || c.name || "DSA Challenge"}`, margin, yPos);
+            yPos += 6;
+            
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            const desc = c.description || c.problem || "Solve the given algorithmic challenge.";
+            const splitDesc = doc.splitTextToSize(desc, pageWidth - 2 * margin);
+            doc.text(splitDesc, margin, yPos);
+            yPos += (splitDesc.length * 5) + 5;
+            
+            // Space for solution
+            doc.setDrawColor(241, 245, 249);
+            doc.rect(margin, yPos, pageWidth - 2 * margin, 60);
+            doc.setFontSize(8);
+            doc.setTextColor(203, 213, 225);
+            doc.text("Write your solution here...", margin + 5, yPos + 7);
+            yPos += 65;
+        });
+    }
+
+    // --- Footer ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Page ${i} of ${pageCount} | Generated by CubeHire AI - Professional Recruitment Tool`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    }
+
+    // Download
+    const fileName = `Assessment_${jobTitle.replace(/\s+/g, '_')}_${dateStr.replace(/\//g, '-')}.pdf`;
+    doc.save(fileName);
 }
 
 // --- Custom Modal Helper ---
@@ -867,6 +1016,32 @@ async function showAnalysisDashboard() {
             return;
         }
 
+        // Group Assessments by Job Title to avoid redundancy
+        const groupedMap = new Map();
+        db.assessments.forEach(a => {
+            if (!groupedMap.has(a.job_title)) {
+                groupedMap.set(a.job_title, {
+                    job_title: a.job_title,
+                    tokens: [a.token],
+                    candidate_count: a.emails.length,
+                    timestamp: a.timestamp,
+                    mcqCount: a.mcqs ? a.mcqs.length : (a.questions ? a.questions.length : 0),
+                    codeCount: a.coding_questions ? a.coding_questions.length : 0
+                });
+            } else {
+                const existing = groupedMap.get(a.job_title);
+                existing.tokens.push(a.token);
+                existing.candidate_count += a.emails.length;
+                if (a.timestamp > existing.timestamp) {
+                    existing.timestamp = a.timestamp;
+                    existing.mcqCount = a.mcqs ? a.mcqs.length : (a.questions ? a.questions.length : 0);
+                    existing.codeCount = a.coding_questions ? a.coding_questions.length : 0;
+                }
+            }
+        });
+
+        const groupedAssessments = Array.from(groupedMap.values());
+
         // Update Stats
         const totalSent = db.assessments.reduce((acc, curr) => acc + curr.emails.length, 0);
         totalSentStat.textContent = totalSent;
@@ -875,37 +1050,24 @@ async function showAnalysisDashboard() {
         const rate = totalSent > 0 ? Math.round((totalAttempted / totalSent) * 100) : 0;
         completionRateStat.textContent = rate + '%';
 
-        // Update Header for Date Column
-        const thead = document.querySelector('#roles-table-header');
-        if (thead && !thead.innerHTML.includes('SENT DATE')) {
-            const actionsTh = thead.lastElementChild;
-            const dateTh = document.createElement('th');
-            dateTh.textContent = 'SENT DATE';
-            thead.insertBefore(dateTh, actionsTh);
-        }
-
-        // Render Roles Table
-        rolesTbody.innerHTML = db.assessments.map(a => {
-            const attempted = db.submissions.filter(s => s.token === a.token).length;
-            const pending = a.emails.length - attempted;
-            const sentDate = formatProctoringDate(a.timestamp);
-
-            const mcqCount = a.mcqs ? a.mcqs.length : (a.questions ? a.questions.length : 0);
-            const codeCount = a.coding_questions ? a.coding_questions.length : 0;
+        // Render Roles Table (Consolidated)
+        rolesTbody.innerHTML = groupedAssessments.map(a => {
+            const attempted = db.submissions.filter(s => a.tokens.includes(s.token)).length;
+            const pending = a.candidate_count - attempted;
+            const sentDate = new Date(a.timestamp * 1000).toLocaleDateString();
 
             return `
-                <tr>
-                    <td onclick="viewCandidateDetails('${a.job_title}', '${a.token}')">
+                <tr onclick="viewCandidateDetails('${a.job_title}', '${a.tokens.join(',')}')">
+                    <td>
                         <div style="font-weight: 700;">${a.job_title}</div>
-                        <div style="font-size: 0.7rem; color: #94a3b8;">${mcqCount} MCQ | ${codeCount} Code</div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">${a.mcqCount} MCQ | ${a.codeCount} Code ${a.tokens.length > 1 ? `(${a.tokens.length} Batches)` : ''}</div>
                     </td>
-                    <td><span class="status-badge status-sent">Sent</span></td>
-                    <td>${a.emails.length}</td>
-                    <td>${attempted}</td>
-                    <td>${new Date(a.timestamp * 1000).toLocaleDateString()}</td>
+                    <td style="font-weight:700;">${a.candidate_count}</td>
+                    <td style="color:#10b981; font-weight:700;">${attempted}</td>
+                    <td style="color:#f59e0b; font-weight:700;">${pending > 0 ? pending : 0}</td>
                     <td class="actions-cell">
-                        <button class="glass-btn sm" onclick="viewCandidateDetails('${a.job_title}', '${a.token}')">View Details</button>
-                        <button class="delete-btn" onclick="event.stopPropagation(); deleteAssessment('${a.token}')" title="Delete Assessment">
+                        <button class="glass-btn sm" onclick="viewCandidateDetails('${a.job_title}', '${a.tokens.join(',')}')">View Details</button>
+                        <button class="delete-btn" onclick="event.stopPropagation(); deleteBatchByTokens('${a.tokens.join(',')}')" title="Delete All Batches">
                             <i data-lucide="trash-2"></i>
                         </button>
                     </td>
@@ -921,30 +1083,23 @@ async function showAnalysisDashboard() {
     }
 }
 
-window.deleteAssessment = async function (token) {
-    const confirmed = await showCustomConfirm("Delete Assessment", "Are you sure you want to delete this assessment and all its submission data? This cannot be undone.");
+window.deleteBatchByTokens = async function (tokensStr) {
+    const tokens = tokensStr.split(',');
+    const confirmed = await showCustomConfirm("Delete Batch Data", `Are you sure you want to delete these ${tokens.length} assessment batches? This will remove all submission data. This cannot be undone.`);
     if (!confirmed) return;
 
     try {
-        const response = await fetch(`/aptitude-api/delete-assessment/${token}`, { method: 'DELETE' });
-        if (response.ok) {
-            showAnalysisDashboard(); // Refresh
-        } else {
-            showCustomAlert("Error", "Failed to delete assessment.");
+        for (const token of tokens) {
+            await fetch(`/aptitude-api/delete-assessment/${token}`, { method: 'DELETE' });
         }
+        showAnalysisDashboard(); // Refresh
     } catch (error) {
-        showCustomAlert("Error", "Connection error. Could not delete.");
+        showCustomAlert("Error", "Connection error. Could not delete everything.");
     }
 }
 
-window.hideAnalysis = function () {
-    analysisDashboard.classList.add('hidden');
-    mainGeneratorCard.classList.remove('hidden');
-}
-
-const candidateList = document.getElementById('candidate-submissions-list');
-
-window.viewCandidateDetails = async function (jobTitle, token) {
+window.viewCandidateDetails = async function (jobTitle, tokensStr) {
+    const tokens = tokensStr.split(',');
     detailJobTitleText.textContent = jobTitle;
     jobRolesView.classList.add('hidden');
     candidateDetailsView.classList.remove('hidden');
@@ -959,18 +1114,40 @@ window.viewCandidateDetails = async function (jobTitle, token) {
         const response = await fetch('/aptitude-api/get-analytics');
         const db = await response.json();
 
-        const assessment = db.assessments.find(a => a.token === token);
-        const submissions = db.submissions.filter(s => s.token === token);
+        // Aggregate All Assessments and Submissions for these tokens
+        const assessments = db.assessments.filter(a => tokens.includes(a.token));
+        const submissions = db.submissions.filter(s => tokens.includes(s.token));
 
-        if (!assessment) return;
+        if (assessments.length === 0) return;
 
-        // Use 'candidates' if available for full meta, fallback to 'emails'
-        const candidateItems = assessment.candidates || assessment.emails.map(e => ({ email: e, name: 'Candidate' }));
+        // Flatten all candidates across all batches
+        const allCandidatesArr = [];
+        const seenEmails = new Set();
+        
+        assessments.forEach(ass => {
+            const items = ass.candidates || (ass.emails || []).map(e => ({ email: e, name: 'Candidate' }));
+            items.forEach(cand => {
+                const email = typeof cand === 'string' ? cand : cand.email;
+                const candData = typeof cand === 'object' ? cand : { email: cand, name: 'Candidate' };
+                
+                // Allow multiple entries if they have different tokens (different attempts)
+                // but keep only one row if it's the exact same email + token
+                const uniqueKey = `${email}-${ass.token}`;
+                if (!seenEmails.has(uniqueKey)) {
+                    seenEmails.add(uniqueKey);
+                    allCandidatesArr.push({
+                        ...candData,
+                        batchToken: ass.token 
+                    });
+                }
+            });
+        });
 
-        candidatesTbody.innerHTML = candidateItems.map(cand => {
-            const email = typeof cand === 'string' ? cand : cand.email;
-            const name = typeof cand === 'string' ? 'Candidate' : cand.name;
-            const sub = submissions.find(s => s.email === email);
+        candidatesTbody.innerHTML = allCandidatesArr.map(cand => {
+            const email = cand.email;
+            const name = cand.name;
+            const token = cand.batchToken;
+            const sub = submissions.find(s => s.email === email && s.token === token);
 
             let status = "Not Started";
             let statusClass = "not-started";

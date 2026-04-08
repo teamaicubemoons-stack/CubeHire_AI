@@ -8,6 +8,11 @@ import re # Added for title cleaning
 from typing import List, Optional
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import threading
+import requests
+
+# Google Sheets Configuration (Fetched from .env)
+GOOGLE_SHEETS_URL = os.getenv("GOOGLE_SHEETS_URL")
 
 # Framework & Utilities
 try:
@@ -405,6 +410,29 @@ async def submit_assessment(data: dict, background_tasks: BackgroundTasks):
         }
         db["submissions"].append(submission)
         save_db(db)
+
+        # --- Google Sheets Integration ---
+        try:
+            # Get job title for the sheet
+            assessment = next((a for a in db["assessments"] if a["token"] == data["token"]), None)
+            job_title = assessment["job_title"] if assessment else "Unknown Role"
+            
+            sheet_payload = {
+                "type": "aptitude",
+                "name": data.get("name", "Candidate"), # Try to get name if passed, fallback
+                "email": data["email"],
+                "role": job_title,
+                "mcq_score": f"{data.get('mcq_score', 0)} / {data.get('mcq_total', 0)}",
+                "coding_score": f"{data.get('coding_score', 0)} / {data.get('coding_total', 0)}",
+                "percentage": f"{round((((data.get('mcq_score', 0) + data.get('coding_score', 0)) / (data.get('mcq_total', 1) + data.get('coding_total', 1))) * 100), 1)}%",
+                "proctoring": data.get("suspicious", "Normal"),
+                "metrics": f"MCQ: {data.get('mcq_score', 0)}, Code: {data.get('coding_score', 0)}",
+                "link": f"https://recruitai.com/view/{data['token']}" # Placeholder link
+            }
+            # Send in background to not block user
+            threading.Thread(target=lambda: requests.post(GOOGLE_SHEETS_URL, json=sheet_payload), daemon=True).start()
+        except Exception as sheet_e:
+            print(f"⚠️ Google Sheets Sync Failed (Aptitude): {sheet_e}")
 
         # Send notification to Recruiter
         background_tasks.add_task(send_submission_notification, submission)
