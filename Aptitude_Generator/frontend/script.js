@@ -1097,6 +1097,13 @@ window.deleteBatchByTokens = async function (tokensStr) {
         showCustomAlert("Error", "Connection error. Could not delete everything.");
     }
 }
+window.hideAnalysis = function() {
+    analysisDashboard.classList.add('hidden');
+    mainGeneratorCard.classList.remove('hidden');
+    if (selectedMcqs.size > 0 || selectedCoding.size > 0) {
+        selectionSection.classList.remove('hidden');
+    }
+}
 
 window.viewCandidateDetails = async function (jobTitle, tokensStr) {
     const tokens = tokensStr.split(',');
